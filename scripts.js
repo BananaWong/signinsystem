@@ -1,5 +1,5 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhCU6IUePZE1dwS6BJrjKm2xKTD3aI2NK6XoMExxcXWsj7EmNgAMMsbNje52F9dWWFyA/exec'; 
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx_fF9axzJvcyaT9tg3bFRW43k2j8MSHUCv0Z5apWf0n5dEaYMrW1sjg7hHk1gtflPLZA/exec'; 
 
 document.getElementById('signInBtn').addEventListener('click', function() {
     handleAttendance('signIn');
@@ -30,7 +30,9 @@ function handleAttendance(action) {
                 action: action,
                 time: new Date().toISOString(),
                 location: placeName,
-                note: note
+                note: note,
+                lat: lat,
+                lng: lng
             };
             addRecordToSheet(data);
         });
@@ -46,27 +48,35 @@ function getPlaceNameFromLatLng(lat, lng, callback) {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'OK') {
-                const placeName = data.results[0].formatted_address; // 获取第一个结果的格式化地址
+                const placeName = data.results[0].formatted_address;
                 callback(placeName);
             } else {
                 alert('獲取地名失敗，稍後重試。');
             }
         })
         .catch(error => {
-            alert('未知錯誤，請稍後重試。');
+            console.error(error);
+            alert('網絡錯誤，請稍後重試。');
         });
 }
 
 function addRecordToSheet(data) {
     fetch(GAS_URL, {
         method: 'POST',
-        mode: 'no-cors', // 由于GAS不设置CORS头，所以使用no-cors模式
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data)
     })
-    .then(() => {
-        alert('記錄成功！');
+    .then(response => {
+        if (response.ok) {
+            alert('記錄成功！');
+        } else {
+            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。');
+        }
     })
     .catch(error => {
-        alert('未知錯誤，請稍後重試');
+        alert('網絡錯誤，請稍後重試。');
     });
 }

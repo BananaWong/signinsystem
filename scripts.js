@@ -1,5 +1,5 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwpeMo-ie1aDxiyUJTiQzuFBIei49P5j9rjzRHRCxigOFRCOVsfXz6gLjI8aMfl2_um-w/exec'; 
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwovoVTkLBa2kJb28_h1JGDwncbQVGyxUu5d2ld0pTHRHiGj2i7Iy9fl_OAfVTZpzWAtw/exec'; 
 
 document.getElementById('signInBtn').addEventListener('click', function() {
     handleAttendance('signIn');
@@ -14,17 +14,15 @@ function handleAttendance(action) {
     const note = document.getElementById('note').value.trim();
 
     if (!employeeName) {
-        alert('請輸入姓名 Please enter your name.');
+        alert('請輸入姓名 / Please enter your name');
         return;
     }
 
-    // 获取GPS位置
     navigator.geolocation.getCurrentPosition(function(position) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
         getPlaceNameFromLatLng(lat, lng, function(placeName) {
-            // 使用placeName和其他信息记录数据
             const data = {
                 name: employeeName,
                 action: action,
@@ -37,7 +35,7 @@ function handleAttendance(action) {
             addRecordToSheet(data);
         });
     }, function(error) {
-        alert('無法獲取位置信息 Unable to obtain location information.');
+        alert('無法獲取位置信息 / Unable to get location information');
     });
 }
 
@@ -51,12 +49,11 @@ function getPlaceNameFromLatLng(lat, lng, callback) {
                 const placeName = data.results[0].formatted_address;
                 callback(placeName);
             } else {
-                alert('獲取地名失敗，稍後重試。Failed to retrieve the place name, please try again later.');
+                alert('獲取地名失敗，請稍後重試。 / Failed to get place name, please try again later.');
             }
         })
         .catch(error => {
-            console.error(error);
-            alert('網路錯誤，請稍後重試。Network error, please try again later.');
+            alert('網絡錯誤，請稍後重試。 / Network error, please try again later.');
         });
 }
 
@@ -70,13 +67,21 @@ function addRecordToSheet(data) {
         body: JSON.stringify(data)
     })
     .then(response => {
-        if (response.ok) {
-            alert('記錄成功！Record successful!');
+        if (response.type === 'opaque') {
+            // 无法访问响应内容，但请求可能已成功
+            alert('記錄可能已成功，請檢查後端數據。 / The record may have been successful, please check the backend data.');
         } else {
-            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。 Recording failed, please ensure that you are in a valid area and that the network connection is available.');
+            // 处理其他情况，例如解析 JSON 响应
+            return response.json().then(json => {
+                if (json.status === "success") {
+                    alert('記錄成功！ / Record successful!');
+                } else {
+                    alert('記錄失敗，' + json.message + ' / Record failed, ' + json.message);
+                }
+            });
         }
     })
     .catch(error => {
-        alert('網絡錯誤，請稍後重試。');
+        alert('網絡錯誤，請稍後重試。 / Network error, please try again later.');
     });
 }

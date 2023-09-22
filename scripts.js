@@ -73,7 +73,7 @@ function addRecordToSheet(data) {
         if (response.ok) {
             alert('記錄成功！Record successful!');
         } else {
-            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。<br> Recording failed, please ensure that you are in a valid area and that the network connection is available.');
+            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。 Recording failed, please ensure that you are in a valid area and that the network connection is available.');
         }
     })
     .catch(error => {

@@ -14,7 +14,7 @@ function handleAttendance(action) {
     const note = document.getElementById('note').value.trim();
 
     if (!employeeName) {
-        alert('請輸入姓名');
+        alert('請輸入姓名 Please enter your name.');
         return;
     }
 
@@ -37,7 +37,7 @@ function handleAttendance(action) {
             addRecordToSheet(data);
         });
     }, function(error) {
-        alert('無法獲取位置信息');
+        alert('無法獲取位置信息 Unable to obtain location information.');
     });
 }
 
@@ -51,12 +51,12 @@ function getPlaceNameFromLatLng(lat, lng, callback) {
                 const placeName = data.results[0].formatted_address;
                 callback(placeName);
             } else {
-                alert('獲取地名失敗，稍後重試。');
+                alert('獲取地名失敗，稍後重試。Failed to retrieve the place name, please try again later.');
             }
         })
         .catch(error => {
             console.error(error);
-            alert('網絡錯誤，請稍後重試。');
+            alert('網路錯誤，請稍後重試。Network error, please try again later.');
         });
 }
 
@@ -71,9 +71,9 @@ function addRecordToSheet(data) {
     })
     .then(response => {
         if (response.ok) {
-            alert('記錄成功！');
+            alert('記錄成功！Record successful!');
         } else {
-            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。');
+            alert('記錄失敗，請確保您在有效區域內並且網絡連接正常。Recording failed, please ensure that you are in a valid area and that the network connection is available.');
         }
     })
     .catch(error => {

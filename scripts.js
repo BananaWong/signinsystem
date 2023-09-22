@@ -1,5 +1,5 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxqunOx5_SSwMA3ZMXODMz47rlTr2KAYPWMU7lIYmBxofKB42Lafg_nEhbOqiiQOFUIyw/exec'; 
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzZTKFrx48PwpJl6OhMAa77kVW8nLOTbCnntJP1BLLfXIb-gIVCkhYlW6D46aba2AmHHw/exec'; 
 
 document.getElementById('signInBtn').addEventListener('click', function() {
     handleAttendance('signIn');

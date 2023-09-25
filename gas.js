@@ -1,22 +1,6 @@
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
 
-  // 定义多个有效签到地址的坐标和半径
-  var validLocations = [
-    {lat: 25.116318004313122, lng: 121.5334272812756, radius: 1.1},
-    {lat: 34.0653347, lng: -118.243891, radius: 1.1},
-    {lat: 24.4761756, lng: 118.1055356, radius: 1.1},
-  ];
-
-  var inValidLocation = validLocations.some(function(location) {
-    var distance = getDistanceFromLatLonInKm(data.lat, data.lng, location.lat, location.lng);
-    return distance <= location.radius;
-  });
-
-  if (!inValidLocation) {
-    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "不在可用簽到區內 Not in the available punch-in area."}));
-  }
-
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = spreadsheet.getSheetByName(data.name) || createNewSheet(data.name);
 
@@ -26,18 +10,12 @@ function doPost(e) {
 
   var rowIndex = findRowIndex(sheet, formattedDate);
   if (rowIndex === -1) {
-    sheet.appendRow([formattedDate, data.name, "", "", "", "", "", data.note, data.expectedStartTime, data.expectedEndTime, ""]);
+    sheet.appendRow([formattedDate, data.name, "", "", "", "", "", data.note, data.expectedStartTime, data.expectedEndTime, ""]); // 添加备注内容
     rowIndex = sheet.getLastRow() - 1;
   }
 
   var columnIndex = data.action === 'signIn' ? 3 : 4;
   sheet.getRange(rowIndex + 1, columnIndex).setValue(time);
-
-  // 计算预期的总工作时间
-  var expectedStart = new Date("1970-01-01T" + data.expectedStartTime + "Z");
-  var expectedEnd = new Date("1970-01-01T" + data.expectedEndTime + "Z");
-  var expectedTotalHours = (expectedEnd - expectedStart) / (1000 * 60 * 60);
-  sheet.getRange(rowIndex + 1, 11).setValue(expectedTotalHours);
 
   // Calculate total hours and salary
   calculateHoursAndSalary(sheet, rowIndex);
@@ -59,7 +37,7 @@ function findRowIndex(sheet, date) {
 function createNewSheet(name) {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = spreadsheet.insertSheet(name);
-  sheet.appendRow(["Date", "Name", "SignIn", "SignOut", "Total Hours", "Hourly Rate", "Total Salary", "Note", "Expected Start Time", "Expected End Time", "Expected Total Hours"]);
+  sheet.appendRow(["Date", "Name", "SignIn", "SignOut", "Total Hours", "Hourly Rate", "Total Salary", "Note", "Expected Start Time", "Expected End Time", "Expected Total Hours"]);// 添加备注列
   return sheet;
 }
 
@@ -77,21 +55,29 @@ function calculateHoursAndSalary(sheet, rowIndex) {
     var totalSalary = totalHours * hourlyRate;
     sheet.getRange(rowIndex + 1, 7).setValue(totalSalary);
   }
+
+  var expectedStartTime = sheet.getRange(rowIndex + 1, 9).getValue();
+  var expectedEndTime = sheet.getRange(rowIndex + 1, 10).getValue();
+  if (expectedStartTime && expectedEndTime) {
+    expectedStartTime = formatTimeStr(expectedStartTime);
+    expectedEndTime = formatTimeStr(expectedEndTime);
+
+    var expectedStart = new Date("1970-01-01T" + expectedStartTime + ":00Z");
+    var expectedEnd = new Date("1970-01-01T" + expectedEndTime + ":00Z");
+    var expectedTotalHours = (expectedEnd - expectedStart) / (1000 * 60 * 60);
+    if (!isNaN(expectedTotalHours) && expectedTotalHours >= 0) {
+      sheet.getRange(rowIndex + 1, 11).setValue(expectedTotalHours);
+    } else {
+      sheet.getRange(rowIndex + 1, 11).setValue("#NUM!");
+    }
+  }
 }
 
-function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-  var R = 6371;
-  var dLat = deg2rad(lat2 - lat1);
-  var dLon = deg2rad(lon2 - lon1);
-  var a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  var distance = R * c;
-  return distance;
-}
-
-function deg2rad(deg) {
-  return deg * (Math.PI / 180);
+function formatTimeStr(timeStr) {
+  var parts = timeStr.split(":");
+  if (parts.length !== 2) return "00:00";
+  var hours = parseInt(parts[0], 10);
+  var minutes = parseInt(parts[1], 10);
+  if (isNaN(hours) || isNaN(minutes)) return "00:00";
+  return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
 }

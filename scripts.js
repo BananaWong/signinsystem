@@ -1,5 +1,5 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwAuUgoJmM65BEsUB74qp5cBfyNtlrNQE4sudklE4Udjx5UoMx2TnD0C7bY10V8I3FWmA/exec'; 
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyko9TaVHS9_rHp7c0zo2kYoEOOVISgY5CTZYA5-R1Du7JCjB35faiwDiCXmnxeRwaOMA/exec'; 
 
 // 定義多個有效簽到地址的坐標和半徑
 const validLocations = [

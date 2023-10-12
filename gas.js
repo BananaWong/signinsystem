@@ -1,83 +1,116 @@
 function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
+    var data = JSON.parse(e.postData.contents);
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadsheet.getSheetByName(data.name) || createNewSheet(data.name);
 
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = spreadsheet.getSheetByName(data.name) || createNewSheet(data.name);
+    var date = new Date(data.time);
+    var formattedDate = Utilities.formatDate(date, "GMT+8", "yyyy-MM-dd");
+    var time = Utilities.formatDate(date, "GMT+8", "HH:mm");
 
-  var date = new Date(data.time);
-  var formattedDate = Utilities.formatDate(date, "GMT+8", "yyyy-MM-dd");
-  var time = Utilities.formatDate(date, "GMT+8", "HH:mm:ss");
+    if (data.action === 'signIn') {
+        var actualSignInTime = time;
+        var expectedStartTime = formatTimeStr(data.expectedStartTime);
+        var actualSignInDate = new Date("1970-01-01T" + actualSignInTime + ":00Z");
+        var expectedStartDate = new Date("1970-01-01T" + expectedStartTime + ":00Z");
 
-  var rowIndex = findRowIndex(sheet, formattedDate);
-  if (rowIndex === -1) {
-    sheet.appendRow([formattedDate, data.name, "", "", "", "", "", data.note, data.expectedStartTime, data.expectedEndTime, ""]); // 添加备注内容
-    rowIndex = sheet.getLastRow() - 1;
-  }
+        var chosenStartTime = (actualSignInDate < expectedStartDate) ? expectedStartTime : actualSignInTime;
+        sheet.appendRow([formattedDate, data.name, chosenStartTime, "", "", "", "", data.note, data.expectedStartTime, data.expectedEndTime, ""]);
+    } else {
+      var rowIndex = sheet.getLastRow();  // Get the index of the last row
+      var previousSignInCell = sheet.getRange(rowIndex, 3);  // Get the cell containing the sign-in time
+      var previousSignInValue = previousSignInCell.getValue();
 
-  var columnIndex = data.action === 'signIn' ? 3 : 4;
-  sheet.getRange(rowIndex + 1, columnIndex).setValue(time);
+        // Additional logging
+         Logger.log("Row Index for previous sign-in: " + rowIndex);
+         Logger.log("Cell Address for previous sign-in: " + previousSignInCell.getA1Notation());
+         Logger.log("Value in the Cell: " + previousSignInCell.getValue());
 
-  // Calculate total hours and salary
-  calculateHoursAndSalary(sheet, rowIndex);
-
-  return ContentService.createTextOutput(JSON.stringify({status: "success", message: "記錄成功！ Record successful!"}));
+            var previousSignInTime = String(sheet.getRange(sheet.getLastRow() - 1, 3).getValue());
+            var previousSignInDecimal = timeToDecimal(previousSignInTime);
+            var signOutDecimal = timeToDecimal(time);
+            
+            var totalHours = signOutDecimal - previousSignInDecimal;
+        
+        if (totalHours < 0) {
+            totalHours = 0
+        }
+        if (isNaN(totalHours)) {
+        totalHours = 0;
+    }
+         sheet.appendRow([formattedDate, data.name, "", time, totalHours.toFixed(2), "", "", data.note, data.expectedStartTime, data.expectedEndTime, ""]);
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "success", message: "記錄成功！ Record successful!"}));
 }
 
-function findRowIndex(sheet, date) {
-  var range = sheet.getRange("A:A");
-  var values = range.getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (values[i][0] === date) {
-      return i;
+function timeToDecimal(timeStr) {
+    var parts = timeStr.split(":");
+    var hours = parseInt(parts[0], 10);
+    var minutes = parseInt(parts[1], 10);
+    return hours + minutes / 60.0;
+}
+
+function findRowIndex(sheet, date, name) {
+    var dateRange = sheet.getRange("A:A");
+    var nameRange = sheet.getRange("B:B");
+    var dateValues = dateRange.getValues();
+    var nameValues = nameRange.getValues();
+
+    for (var i = 0; i < dateValues.length; i++) {
+        if (dateValues[i][0] === date && nameValues[i][0] === name) {
+            return i;
+        }
     }
-  }
-  return -1;
+    return -1;
 }
 
 function createNewSheet(name) {
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = spreadsheet.insertSheet(name);
-  sheet.appendRow(["Date", "Name", "SignIn", "SignOut", "Total Hours", "Hourly Rate", "Total Salary", "Note", "Expected Start Time", "Expected End Time", "Expected Total Hours"]);// 添加备注列
-  return sheet;
-}
-
-function calculateHoursAndSalary(sheet, rowIndex) {
-  var signInTime = sheet.getRange(rowIndex + 1, 3).getValue();
-  var signOutTime = sheet.getRange(rowIndex + 1, 4).getValue();
-
-  if (signInTime && signOutTime) {
-    var signIn = new Date("1970-01-01T" + signInTime + "Z");
-    var signOut = new Date("1970-01-01T" + signOutTime + "Z");
-    var totalHours = (signOut - signIn) / (1000 * 60 * 60);
-    sheet.getRange(rowIndex + 1, 5).setValue(totalHours);
-
-    var hourlyRate = sheet.getRange(rowIndex + 1, 6).getValue() || 0;
-    var totalSalary = totalHours * hourlyRate;
-    sheet.getRange(rowIndex + 1, 7).setValue(totalSalary);
-  }
-
-  var expectedStartTime = sheet.getRange(rowIndex + 1, 9).getValue();
-  var expectedEndTime = sheet.getRange(rowIndex + 1, 10).getValue();
-  if (expectedStartTime && expectedEndTime) {
-    expectedStartTime = formatTimeStr(expectedStartTime);
-    expectedEndTime = formatTimeStr(expectedEndTime);
-
-    var expectedStart = new Date("1970-01-01T" + expectedStartTime + ":00Z");
-    var expectedEnd = new Date("1970-01-01T" + expectedEndTime + ":00Z");
-    var expectedTotalHours = (expectedEnd - expectedStart) / (1000 * 60 * 60);
-    if (!isNaN(expectedTotalHours) && expectedTotalHours >= 0) {
-      sheet.getRange(rowIndex + 1, 11).setValue(expectedTotalHours);
-    } else {
-      sheet.getRange(rowIndex + 1, 11).setValue("#NUM!");
-    }
-  }
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadsheet.insertSheet(name);
+    sheet.appendRow(["Date", "Name", "SignIn", "SignOut", "Total Hours", "Hourly Rate", "Total Salary", "Note", "Expected Start Time", "Expected End Time", "Expected Total Hours"]);
+    return sheet;
 }
 
 function formatTimeStr(timeStr) {
-  var parts = timeStr.split(":");
-  if (parts.length !== 2) return "00:00";
-  var hours = parseInt(parts[0], 10);
-  var minutes = parseInt(parts[1], 10);
-  if (isNaN(hours) || isNaN(minutes)) return "00:00";
-  return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+    var parts = timeStr.split(":");
+    if (parts.length !== 2) return "00:00";
+    var hours = parseInt(parts[0], 10);
+    var minutes = parseInt(parts[1], 10);
+    if (isNaN(hours) || isNaN(minutes)) return "00:00";
+    return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+}
+
+function testDoPost() {
+    // 模拟从前端发送的签入数据
+    var mockSignInEvent = {
+        postData: {
+            contents: JSON.stringify({
+                action: 'signIn',
+                time: new Date().toISOString(),
+                name: '测试表',
+                expectedStartTime: '11:11',
+                expectedEndTime: '22:22',
+                note: '测试'
+            })
+        }
+    };
+
+    // 调用doPost函数模拟签入
+    doPost(mockSignInEvent);
+
+    // 模拟从前端发送的签出数据
+    var mockSignOutEvent = {
+        postData: {
+            contents: JSON.stringify({
+                action: 'signOut',
+                time: new Date().toISOString(),
+                name: '测试表',
+                expectedStartTime: '11:11',
+                expectedEndTime: '22:22',
+                note: '测试'
+            })
+        }
+    };
+
+    // 调用doPost函数模拟签出
+    doPost(mockSignOutEvent);
 }

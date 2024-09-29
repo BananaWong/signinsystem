@@ -1,26 +1,22 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwz5tioZZzpr8Lezhq2u9CHwVF91Ifri0A9F09n21uBr31PkFxta-9gS4uXVVcABjpWrw/exec'; 
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzcTllzp3F_sHITNZy6KXokT7WUj32I9T50wmoefNYQiSvIeymq6jhB79kioKkNoD93wg/exec';
 
-// 定義多個有效簽到地址的坐標和半徑
 const validLocations = [
-  {lat: 25.116318004313122, lng: 121.5334272812756, radius: 0.2}, // tw地址測試
-  {lat: 34.0653347, lng: -118.243891, radius: 0.2}, // proxy地址測試
-  {lat: 24.4761756, lng: 118.1055356, radius: 0.2}, // hub地址測試
-  {lat:34.6937249,lng:135.5022535, radius: 0.2}//jp地址測試
-
+  {lat: 25.116318004313122, lng: 121.5334272812756, radius: 0.2},
+  {lat: 34.0653347, lng: -118.243891, radius: 0.2},
+  {lat: 24.4761756, lng: 118.1055356, radius: 0.2},
+  {lat:34.6937249,lng:135.5022535, radius: 100.2},//测试地址们
+  {lat:	51.9172,lng:4.5049, radius: 100.2},
+  {lat:3.1671,lng:101.6708, radius: 100.2}
 ];
-document.addEventListener('DOMContentLoaded', function() {
-    // 获取当前日期
-    const today = new Date().toISOString().split('T')[0];
 
-    // 获取存储的签到日期
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
     const signInDate = localStorage.getItem('signInDate');
 
-    // 检查存储的签到日期是否与当前日期相同
     if (signInDate === today) {
         document.getElementById('message').innerText = '您今天簽到過了哦 / You have successfully punch-in today!';
     } else {
-        // 如果不同，则重置签到标记
         localStorage.removeItem('signedInToday');
         localStorage.removeItem('signInDate');
     }
@@ -28,7 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.getElementById('signInBtn').addEventListener('click', function() {
     handleAttendance('signIn');
-    
 });
 
 document.getElementById('signOutBtn').addEventListener('click', function() {
@@ -49,18 +44,20 @@ function handleAttendance(action) {
         alert('請輸入預期開始時間和預期結束時間 / Please enter expected start time and end time');
         return;
     }
+    if (expectedEndTime <= expectedStartTime) {
+        alert('預期結束時間必須晚於預期開始時間 / Expected end time must be later than expected start time');
+        return;
+    }
 
     navigator.geolocation.getCurrentPosition(function(position) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        // 計算用戶距離每個有效地址的距離，檢查是否在其中一個有效區域內
         const inValidLocation = validLocations.some(function(location) {
             const distance = getDistanceFromLatLonInKm(lat, lng, location.lat, location.lng);
             return distance <= location.radius;
         });
 
-        // 如果不在任何一個有效區域內，則提示錯誤並返回
         if (!inValidLocation) {
             alert('不在可用簽到區內 Not in the available punch-in area.');
             return;
@@ -114,7 +111,7 @@ function addRecordToSheet(data) {
     })
     .then(() => {
         alert('記錄成功！ / Record successful!');
-        localStorage.setItem('signedInToday', true); // 存储签到标记
+        localStorage.setItem('signedInToday', true);
         localStorage.setItem('signInDate', new Date().toISOString().split('T')[0]);
     })
     .catch(error => {
@@ -122,7 +119,6 @@ function addRecordToSheet(data) {
     });
 }
 
-// 計算兩個經緯度之間的距離的函數
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     var R = 6371; // 地球半徑，單位為公里
     var dLat = deg2rad(lat2 - lat1);

@@ -1,5 +1,5 @@
 const GEOCODING_API_KEY = 'AIzaSyCkRbyonCvO0212wyJYH64jpQKu2jhKVzU';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzcTllzp3F_sHITNZy6KXokT7WUj32I9T50wmoefNYQiSvIeymq6jhB79kioKkNoD93wg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx4wkWEHV7mFuTPRzMLvylkit9ZSUkg_q-qyOyn39eDHYuExEWtevYTVGxXLdFwGau1Sw/exec';
 
 const validLocations = [
   {lat: 25.116318004313122, lng: 121.5334272812756, radius: 0.2},
